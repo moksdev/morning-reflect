@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { getDailyQuestion, getTodayKey } from "@/lib/questions";
 
-const TIMER_DURATION = 5 * 60; // 5 minutes in seconds
+const TIMER_DURATION = 5 * 60;
 
 function getReflectionKey() {
   return `askthevoid_reflection_${getTodayKey()}`;
@@ -20,6 +20,7 @@ export default function Home() {
   const [secondsLeft, setSecondsLeft] = useState(TIMER_DURATION);
   const [timerActive, setTimerActive] = useState(false);
   const [timerDone, setTimerDone] = useState(false);
+  const [glowing, setGlowing] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -48,12 +49,14 @@ export default function Home() {
   const startTimer = useCallback(() => {
     if (timerActive || timerDone) return;
     setTimerActive(true);
+    setGlowing(true);
     timerRef.current = setInterval(() => {
       setSecondsLeft((s) => {
         if (s <= 1) {
           clearInterval(timerRef.current!);
           setTimerActive(false);
           setTimerDone(true);
+          setGlowing(false);
           return 0;
         }
         return s - 1;
@@ -66,11 +69,7 @@ export default function Home() {
     setTimeout(() => {
       textareaRef.current?.focus();
       startTimer();
-    }, 300);
-  };
-
-  const handleTextareaFocus = () => {
-    startTimer();
+    }, 400);
   };
 
   const handleSave = () => {
@@ -86,150 +85,176 @@ export default function Home() {
   };
 
   const timerProgress = 1 - secondsLeft / TIMER_DURATION;
-  const circumference = 2 * Math.PI * 18;
-
+  const r = 20;
+  const circumference = 2 * Math.PI * r;
   const date = new Date().toLocaleDateString("fr-FR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
+    weekday: "long", day: "numeric", month: "long",
   });
 
   return (
-    <main
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: "#f5f0e8", color: "#2a2520" }}
-    >
+    <main style={{ minHeight: "100svh", display: "flex", flexDirection: "column", backgroundColor: "#1a1712" }}>
+
       {/* Top bar */}
-      <div
-        className="flex justify-between items-center px-6 pt-8 pb-4"
-        style={{ color: "#9a9088", fontSize: "13px", letterSpacing: "0.02em" }}
-      >
-        <span className="capitalize">{date}</span>
-        <span style={{ fontVariantNumeric: "tabular-nums" }}>{time}</span>
+      <div style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "20px 24px 12px",
+        color: "#6b6158",
+        fontSize: "12px",
+        letterSpacing: "0.04em",
+      }}>
+        <span style={{ textTransform: "capitalize" }}>{date}</span>
+        <span style={{ fontVariantNumeric: "tabular-nums", color: "#8a7a6a" }}>{time}</span>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col justify-between px-6 pb-10">
+      {/* Progress bar */}
+      <div style={{ padding: "0 24px", marginBottom: "4px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+          <span style={{ fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#5a4f44" }}>
+            ask the void
+          </span>
+          <span style={{ fontSize: "10px", color: "#5a4f44" }}>
+            {qIndex} / {qTotal}
+          </span>
+        </div>
+        <div style={{ height: "1px", backgroundColor: "#2e2920", borderRadius: "1px" }}>
+          <div style={{
+            height: "100%",
+            width: `${(qIndex / qTotal) * 100}%`,
+            background: "linear-gradient(90deg, #c4621a, #e8902a)",
+            borderRadius: "1px",
+            transition: "width 1s ease",
+          }} />
+        </div>
+      </div>
 
-        {/* Progress + label */}
-        <div className="flex flex-col gap-3 mt-6">
-          <div className="flex items-center justify-between">
-            <span
-              style={{
+      {/* Content */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", padding: "24px 24px 32px" }}>
+
+        {/* Question block */}
+        <div style={{ flex: revealed ? "0 0 auto" : "1", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {!revealed ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
+              <div>
+                <p style={{
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontSize: "clamp(13px, 3.5vw, 16px)",
+                  color: "#3a342e",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: "20px",
+                }}>
+                  Ta question du matin
+                </p>
+                <p style={{
+                  fontFamily: "'Lora', Georgia, serif",
+                  fontStyle: "italic",
+                  fontSize: "clamp(22px, 6vw, 36px)",
+                  lineHeight: 1.55,
+                  color: "#3d3530",
+                  userSelect: "none",
+                }}>
+                  Prends un moment.<br />Respire.
+                </p>
+              </div>
+
+              <button
+                onClick={handleReveal}
+                style={{
+                  alignSelf: "flex-start",
+                  padding: "14px 28px",
+                  borderRadius: "100px",
+                  border: "1px solid #c4621a",
+                  backgroundColor: "transparent",
+                  color: "#e8902a",
+                  fontSize: "14px",
+                  letterSpacing: "0.05em",
+                  cursor: "pointer",
+                  boxShadow: "0 0 20px rgba(196, 98, 26, 0.2), inset 0 0 20px rgba(196, 98, 26, 0.04)",
+                  transition: "all 0.3s ease",
+                }}
+                onMouseEnter={e => {
+                  (e.target as HTMLButtonElement).style.boxShadow = "0 0 35px rgba(196, 98, 26, 0.45), inset 0 0 20px rgba(196, 98, 26, 0.08)";
+                  (e.target as HTMLButtonElement).style.backgroundColor = "rgba(196, 98, 26, 0.08)";
+                }}
+                onMouseLeave={e => {
+                  (e.target as HTMLButtonElement).style.boxShadow = "0 0 20px rgba(196, 98, 26, 0.2), inset 0 0 20px rgba(196, 98, 26, 0.04)";
+                  (e.target as HTMLButtonElement).style.backgroundColor = "transparent";
+                }}
+              >
+                Révéler la question
+              </button>
+
+              <p style={{
+                fontSize: "12px",
+                color: "#3a342e",
+                fontStyle: "italic",
+                lineHeight: 1.7,
+                marginTop: "16px",
+              }}>
+                &ldquo;La vie non examinée ne vaut pas d&apos;être vécue.&rdquo;
+                <br />
+                <span style={{ fontStyle: "normal", color: "#2e2920" }}>— Socrate</span>
+              </p>
+            </div>
+          ) : (
+            <div style={{ marginBottom: "28px" }}>
+              <p style={{
                 fontSize: "10px",
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
-                color: "#c4a882",
-              }}
-            >
-              question du jour
-            </span>
-            <span style={{ fontSize: "11px", color: "#c4a882" }}>
-              {qIndex} / {qTotal}
-            </span>
-          </div>
-          {/* Progress bar */}
-          <div
-            style={{
-              height: "1px",
-              backgroundColor: "#e8e0d4",
-              borderRadius: "1px",
-              overflow: "hidden",
-            }}
-          >
-            <div
-              style={{
-                height: "100%",
-                width: `${(qIndex / qTotal) * 100}%`,
-                backgroundColor: "#c4a882",
-                transition: "width 0.8s ease",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Question */}
-        <div className="flex-1 flex flex-col justify-center py-10">
-          {!revealed ? (
-            <button
-              onClick={handleReveal}
-              className="text-left w-full"
-              style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}
-            >
-              <p
-                style={{
-                  fontFamily: "var(--font-lora), Georgia, serif",
-                  fontStyle: "italic",
-                  fontSize: "clamp(18px, 5vw, 28px)",
-                  lineHeight: 1.6,
-                  color: "#d4c5b0",
-                  userSelect: "none",
-                }}
-              >
-                Touche pour commencer…
+                color: "#5a4f44",
+                marginBottom: "14px",
+              }}>
+                Ta question du jour
               </p>
-              <p style={{ fontSize: "12px", color: "#c4a882", marginTop: "24px" }}>
-                Prends un moment. Respire.
-              </p>
-            </button>
-          ) : (
-            <p
-              style={{
-                fontFamily: "var(--font-lora), Georgia, serif",
-                fontSize: "clamp(20px, 5.5vw, 30px)",
-                lineHeight: 1.65,
-                color: "#2a2520",
+              <p style={{
+                fontFamily: "'Lora', Georgia, serif",
+                fontSize: "clamp(22px, 5.5vw, 32px)",
+                lineHeight: 1.6,
+                color: "#f0e4d4",
                 letterSpacing: "-0.01em",
-              }}
-            >
-              {question}
-            </p>
+              }}>
+                {question}
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Reflection + timer */}
+        {/* Writing area */}
         {revealed && (
-          <div className="flex flex-col gap-5">
-            {/* Timer */}
-            <div className="flex items-center gap-3">
-              <svg width="44" height="44" viewBox="0 0 44 44">
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "16px" }}>
+
+            {/* Timer row */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+              <svg width="48" height="48" viewBox="0 0 48 48" style={{ flexShrink: 0 }}>
+                <circle cx="24" cy="24" r={r} fill="none" stroke="#2e2920" strokeWidth="2" />
                 <circle
-                  cx="22"
-                  cy="22"
-                  r="18"
+                  cx="24" cy="24" r={r}
                   fill="none"
-                  stroke="#e8e0d4"
-                  strokeWidth="2"
-                />
-                <circle
-                  cx="22"
-                  cy="22"
-                  r="18"
-                  fill="none"
-                  stroke={timerDone ? "#a8c8a0" : "#c4a882"}
+                  stroke={timerDone ? "#7aaa72" : "#e8902a"}
                   strokeWidth="2"
                   strokeDasharray={circumference}
                   strokeDashoffset={circumference * (1 - timerProgress)}
                   strokeLinecap="round"
-                  transform="rotate(-90 22 22)"
-                  style={{ transition: "stroke-dashoffset 1s linear" }}
-                />
-                <text
-                  x="22"
-                  y="26"
-                  textAnchor="middle"
+                  transform="rotate(-90 24 24)"
                   style={{
-                    fontSize: "9px",
-                    fill: timerDone ? "#a8c8a0" : "#9a9088",
-                    fontVariantNumeric: "tabular-nums",
+                    transition: "stroke-dashoffset 1s linear",
+                    filter: timerActive ? "drop-shadow(0 0 6px rgba(232, 144, 42, 0.6))" : "none",
                   }}
-                >
+                />
+                <text x="24" y="28" textAnchor="middle" style={{
+                  fontSize: "10px",
+                  fill: timerDone ? "#7aaa72" : "#8a7a6a",
+                  fontVariantNumeric: "tabular-nums",
+                }}>
                   {timerDone ? "✓" : formatTime(secondsLeft)}
                 </text>
               </svg>
-              <span style={{ fontSize: "12px", color: "#b0a898" }}>
+              <span style={{ fontSize: "12px", color: "#5a4f44", lineHeight: 1.5 }}>
                 {timerDone
-                  ? "Prends le temps de relire avant de sauvegarder."
+                  ? "Bien. Prends le temps de relire."
                   : timerActive
                   ? "Écris sans t'arrêter."
                   : "5 minutes pour toi."}
@@ -237,71 +262,69 @@ export default function Home() {
             </div>
 
             {/* Textarea */}
-            <textarea
-              ref={textareaRef}
-              onFocus={handleTextareaFocus}
-              value={reflection}
-              onChange={(e) => setReflection(e.target.value)}
-              placeholder="Écris ce qui vient, sans censure, sans jugement…"
-              rows={6}
-              style={{
-                width: "100%",
-                backgroundColor: "transparent",
-                border: "none",
-                borderBottom: `1px solid ${timerActive ? "#c4a882" : "#ddd5c8"}`,
-                outline: "none",
-                resize: "none",
-                fontSize: "16px",
-                lineHeight: 1.7,
-                color: "#2a2520",
-                fontFamily: "inherit",
-                fontWeight: 300,
-                paddingBottom: "12px",
-                transition: "border-color 0.3s ease",
-              }}
-            />
+            <div style={{
+              flex: 1,
+              position: "relative",
+              borderRadius: "12px",
+              backgroundColor: "#201d18",
+              border: `1px solid ${glowing ? "rgba(196, 98, 26, 0.4)" : "#2e2920"}`,
+              boxShadow: glowing ? "0 0 30px rgba(196, 98, 26, 0.08), inset 0 0 30px rgba(196, 98, 26, 0.03)" : "none",
+              transition: "border-color 0.4s ease, box-shadow 0.4s ease",
+              minHeight: "220px",
+            }}>
+              <textarea
+                ref={textareaRef}
+                onFocus={startTimer}
+                value={reflection}
+                onChange={(e) => setReflection(e.target.value)}
+                placeholder="Écris ce qui vient, sans censure, sans jugement…"
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  backgroundColor: "transparent",
+                  border: "none",
+                  outline: "none",
+                  resize: "none",
+                  padding: "18px",
+                  fontSize: "16px",
+                  lineHeight: 1.75,
+                  color: "#d4c8b8",
+                  fontWeight: 300,
+                  caretColor: "#e8902a",
+                }}
+              />
+            </div>
 
-            {/* Save */}
-            <div className="flex justify-between items-center">
-              <span style={{ fontSize: "11px", color: "#c4a882" }}>
-                {reflection.length > 0 ? `${reflection.split(/\s+/).filter(Boolean).length} mots` : ""}
+            {/* Bottom row */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "11px", color: "#3a342e" }}>
+                {reflection.trim().length > 0
+                  ? `${reflection.trim().split(/\s+/).length} mots`
+                  : ""}
               </span>
               <button
                 onClick={handleSave}
                 style={{
-                  fontSize: "13px",
-                  padding: "10px 20px",
+                  padding: "12px 28px",
                   borderRadius: "100px",
-                  border: "none",
+                  border: saved ? "1px solid #7aaa72" : "1px solid #c4621a",
+                  backgroundColor: saved ? "rgba(122, 170, 114, 0.12)" : "rgba(196, 98, 26, 0.1)",
+                  color: saved ? "#7aaa72" : "#e8902a",
+                  fontSize: "14px",
+                  letterSpacing: "0.04em",
                   cursor: "pointer",
-                  backgroundColor: saved ? "#c4a882" : "#ede8df",
-                  color: saved ? "#f5f0e8" : "#8a7f74",
-                  transition: "all 0.3s ease",
-                  letterSpacing: "0.03em",
+                  boxShadow: saved
+                    ? "0 0 20px rgba(122, 170, 114, 0.2)"
+                    : "0 0 20px rgba(196, 98, 26, 0.15)",
+                  transition: "all 0.4s ease",
                 }}
               >
-                {saved ? "Enregistré" : "Garder"}
+                {saved ? "Enregistré ✓" : "Sauvegarder"}
               </button>
             </div>
           </div>
-        )}
-
-        {/* Footer quote */}
-        {!revealed && (
-          <p
-            style={{
-              fontSize: "11px",
-              color: "#c4a882",
-              textAlign: "center",
-              fontStyle: "italic",
-              lineHeight: 1.6,
-              paddingTop: "20px",
-            }}
-          >
-            &ldquo;La vie non examinée ne vaut pas d&apos;être vécue.&rdquo;
-            <br />
-            <span style={{ fontStyle: "normal", opacity: 0.7 }}>— Socrate</span>
-          </p>
         )}
       </div>
     </main>

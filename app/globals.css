@@ -1,16 +1,31 @@
 @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
 @import "tailwindcss";
 
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  background-color: #f5f0e8;
-  color: #2a2520;
-  font-family: 'Inter', sans-serif;
+  background-color: #1a1712;
+  color: #e8ddd0;
+  font-family: 'Inter', -apple-system, sans-serif;
   font-weight: 300;
   min-height: 100vh;
-  margin: 0;
+  -webkit-font-smoothing: antialiased;
 }
 
 textarea {
   resize: none;
   outline: none;
+  font-family: inherit;
+}
+
+::selection {
+  background: rgba(230, 140, 50, 0.25);
+}
+
+::-webkit-scrollbar {
+  width: 0;
 }
